@@ -1,19 +1,25 @@
 import { useState, type FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/Toast/Toast';
-import { updateMe } from '../../api/user';
+import ConfirmDialog from '../../components/ConfirmDialog';
+import { updateMe, deleteMe } from '../../api/user';
 import { genderLabel, formatDateTime } from '../../utils/format';
+import { removeToken } from '../../utils/storage';
 import type { UpdateMeRequest } from '../../types';
 import styles from './ProfilePage.module.css';
 
 export default function ProfilePage() {
   const { user, updateUser } = useAuth();
   const { addToast } = useToast();
+  const navigate = useNavigate();
 
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState<UpdateMeRequest>({});
   const [error, setError] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   if (!user) return null;
 
@@ -66,6 +72,27 @@ export default function ProfilePage() {
       setError('网络错误，请重试');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    try {
+      const res = await deleteMe();
+      if (res.code === 200) {
+        addToast(res.msg || '账号注销成功', 'success');
+        removeToken();
+        // Force logout without calling the API logout (token already invalidated)
+        navigate('/login', { replace: true });
+        window.dispatchEvent(new CustomEvent('auth:token-expired'));
+      } else {
+        addToast(res.msg || '注销失败', 'error');
+      }
+    } catch {
+      addToast('网络错误，请重试', 'error');
+    } finally {
+      setDeleting(false);
+      setShowDeleteConfirm(false);
     }
   };
 
@@ -217,7 +244,41 @@ export default function ProfilePage() {
             </div>
           </div>
         )}
+
+        {!editing && (
+          <div className={styles.dangerSection}>
+            {user.role === 1 ? (
+              <>
+                <button className={styles.deleteAccountBtnDisabled} disabled>
+                  注销账号
+                </button>
+                <p className={styles.deleteHint}>管理员不能轻易注销，如需注销请先将账号置为普通用户</p>
+              </>
+            ) : (
+              <>
+                <button
+                  className={styles.deleteAccountBtn}
+                  onClick={() => setShowDeleteConfirm(true)}
+                >
+                  注销账号
+                </button>
+                <p className={styles.deleteHint}>注销后账号数据将永久删除，不可恢复</p>
+              </>
+            )}
+          </div>
+        )}
       </div>
+
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        title="注销账号"
+        message="注销后您的账号数据将被永久删除，此操作不可恢复。确定要继续吗？"
+        confirmText={deleting ? '注销中...' : '确认注销'}
+        cancelText="取消"
+        danger
+        onConfirm={handleDeleteAccount}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
     </div>
   );
 }

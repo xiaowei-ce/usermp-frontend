@@ -117,8 +117,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const handleTokenExpired = () => {
       removeToken();
-      dispatch({ type: 'LOGOUT' });
       navigate('/login', { replace: true });
+      dispatch({ type: 'LOGOUT' });
     };
     window.addEventListener('auth:token-expired', handleTokenExpired);
     return () => {

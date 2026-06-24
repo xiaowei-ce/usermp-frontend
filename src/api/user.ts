@@ -6,3 +6,6 @@ export const getMe = (): Promise<ApiResponse<User>> =>
 
 export const updateMe = (data: UpdateMeRequest): Promise<ApiResponse<User>> =>
   apiClient.put('/user/me', data).then((res) => res.data as ApiResponse<User>);
+
+export const deleteMe = (): Promise<ApiResponse<null>> =>
+  apiClient.delete('/user/me').then((res) => res.data as ApiResponse<null>);
