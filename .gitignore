@@ -1,0 +1,13 @@
+dist/
+node_modules/
+*.tsbuildinfo
+
+# env files
+.env*
+
+# tools
+.impeccable/
+.claude/
+
+# misc
+PRODUCT.md
